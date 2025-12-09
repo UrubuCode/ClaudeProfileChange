@@ -1,0 +1,7 @@
+# Requirements for Claude Profile Manager
+#
+# Note: tkinter is built-in with Python, no additional dependencies required
+#
+# Optional dependencies for enhanced UI (uncomment if needed):
+# ttkthemes==3.2.2  # Enhanced themes for tkinter
+# pillow==10.1.0    # Image processing for icons
