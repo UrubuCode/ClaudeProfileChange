@@ -38,6 +38,18 @@ npx tauri build                  # instaladores em src-tauri/target/release/bund
 cd src-tauri; cargo test         # testes do backend
 ```
 
+### Publicar uma versão
+
+```powershell
+npm run release -- 3.2.0 "O que mudou"
+```
+
+O script sobe a versão, roda os testes, compila assinado com a chave
+`~/.tauri/claude-profile-manager.key`, faz commit e tag e cria a release (com o
+`latest.json` do auto-update) no repositório público
+[UrubuCode/claude-profile-manager-releases](https://github.com/UrubuCode/claude-profile-manager-releases).
+É preciso ter o `gh` autenticado. O CI do GitHub roda só os testes.
+
 Linha de comando do executável:
 
 | Comando | Efeito |

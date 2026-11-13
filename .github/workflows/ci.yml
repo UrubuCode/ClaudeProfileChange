@@ -1,0 +1,32 @@
+name: CI
+
+# Testes e build em cada push/PR. A publicação de releases é feita localmente
+# com `npm run release -- <versão> "notas"` (veja scripts/release.mjs), porque o
+# código é privado e as releases vão para o repositório público
+# UrubuCode/claude-profile-manager-releases.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Frontend (tsc + vite)
+        run: npm run build
+      - name: Testes Rust
+        working-directory: src-tauri
+        run: cargo test
