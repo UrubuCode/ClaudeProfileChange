@@ -345,7 +345,7 @@ dependencies = [
 
 [[package]]
 name = "claude-profile-manager"
-version = "3.1.1"
+version = "3.1.2"
 dependencies = [
  "dirs 6.0.0",
  "junction",
