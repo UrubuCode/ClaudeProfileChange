@@ -57,5 +57,7 @@ jobs:
           releaseBody: |
             Instale com o `*-setup.exe` (NSIS) ou o `.msi`.
             Para ativar o menu "Abrir Claude aqui" no Explorer, marque "Menu no Explorer" no app.
+          # Auto-update usa o instalador NSIS (roda os hooks do menu do Explorer)
+          updaterJsonPreferNsis: true
           releaseDraft: false
           prerelease: false

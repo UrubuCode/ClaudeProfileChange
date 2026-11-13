@@ -24,7 +24,6 @@ export interface State {
   envValue: string | null;
   envUnknown: boolean;
   profiles: ProfileInfo[];
-  explorerMenu: boolean;
 }
 
 export interface Created {
@@ -39,7 +38,6 @@ export const api = {
   createProfile: (name: string) => invoke<Created>("create_profile", { name }),
   renameProfile: (old: string, newName: string) => invoke<State>("rename_profile", { old, new: newName }),
   deleteProfile: (name: string) => invoke<State>("delete_profile", { name }),
-  setExplorerMenu: (enabled: boolean) => invoke<State>("set_explorer_menu", { enabled }),
   openClaude: (name: string) => invoke<void>("open_claude", { name }),
   openFolder: (name: string) => invoke<void>("open_folder", { name }),
 };

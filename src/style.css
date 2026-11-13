@@ -89,8 +89,6 @@ code { font: 12px ui-monospace, Consolas, monospace; }
 .banner .bad { color: var(--bad); }
 .detail-footer { display: flex; gap: 6px; margin-top: 14px; }
 .hint { color: var(--muted); font-size: 12px; margin-top: 18px; max-width: 60ch; }
-.toggle { display: flex; align-items: center; gap: 6px; white-space: nowrap; cursor: pointer; }
-.toggle input { width: auto; margin: 0; accent-color: var(--accent); }
 .selectable { user-select: text; word-break: break-all; }
 .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
 .dot.ok { background: var(--ok); } .dot.warn { background: var(--warn); } .dot.bad { background: var(--bad); }

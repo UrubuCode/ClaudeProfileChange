@@ -1,25 +1,33 @@
 mod env;
 mod explorer;
 mod profiles;
+mod tray;
 
 use profiles::{State, Store};
 use std::path::{Path, PathBuf};
 use std::process::Command;
+use tauri::AppHandle;
 
 fn state() -> State {
-    let mut s = Store::from_env().state(env::get());
-    s.explorer_menu = explorer::is_enabled();
-    s
+    Store::from_env().state(env::get())
 }
 
-/// Mantém o menu do Explorer em dia com a lista de perfis (se estiver ligado).
-fn sync_menu() -> Result<State, String> {
+/// Mantém o menu do Explorer e a bandeja em dia com a lista de perfis.
+fn sync_menu(app: &AppHandle) -> Result<State, String> {
     let s = state();
-    if s.explorer_menu {
-        explorer::enable(&s.profiles)?;
-        return Ok(state());
-    }
+    explorer::enable(&s.profiles)?;
+    tray::refresh(app, &s);
     Ok(s)
+}
+
+pub(crate) fn do_set_default(app: &AppHandle, name: &str) -> Result<State, String> {
+    let v = Store::from_env().env_for(name)?;
+    env::set(v.as_deref())?;
+    sync_menu(app)
+}
+
+pub(crate) fn do_open_claude(name: &str) -> Result<(), String> {
+    open_claude_in(&Store::from_env(), name, None)
 }
 
 #[tauri::command]
@@ -29,10 +37,8 @@ fn get_state() -> State {
 
 /// Define o perfil usado por terminais/apps abertos a partir de agora.
 #[tauri::command]
-fn set_default(name: String) -> Result<State, String> {
-    let v = Store::from_env().env_for(&name)?;
-    env::set(v.as_deref())?;
-    sync_menu()
+fn set_default(app: AppHandle, name: String) -> Result<State, String> {
+    do_set_default(&app, &name)
 }
 
 #[derive(serde::Serialize)]
@@ -43,48 +49,39 @@ struct Created {
 }
 
 #[tauri::command]
-fn create_profile(name: String) -> Result<Created, String> {
+fn create_profile(app: AppHandle, name: String) -> Result<Created, String> {
     let s = Store::from_env();
     let (name, warnings) = s.create(&name)?;
     open_claude_in(&s, &name, None)?;
-    Ok(Created { name, warnings, state: sync_menu()? })
+    Ok(Created { name, warnings, state: sync_menu(&app)? })
 }
 
 #[tauri::command]
-fn rename_profile(old: String, new: String) -> Result<State, String> {
+fn rename_profile(app: AppHandle, old: String, new: String) -> Result<State, String> {
     let s = Store::from_env();
     let was_selected = s.state(env::get()).profiles.iter().any(|p| p.name == old && p.is_selected);
     let n = s.rename(&old, &new)?;
     if was_selected {
         env::set(s.env_for(&n)?.as_deref())?;
     }
-    sync_menu()
+    sync_menu(&app)
 }
 
 #[tauri::command]
-fn delete_profile(name: String) -> Result<State, String> {
+fn delete_profile(app: AppHandle, name: String) -> Result<State, String> {
     let s = Store::from_env();
     let was_selected = s.state(env::get()).profiles.iter().any(|p| p.name == name && p.is_selected);
     s.delete(&name)?;
     if was_selected {
         env::set(None)?;
     }
-    sync_menu()
-}
-
-#[tauri::command]
-fn set_explorer_menu(enabled: bool) -> Result<State, String> {
-    if enabled {
-        explorer::enable(&state().profiles)?;
-    } else {
-        explorer::disable()?;
-    }
-    Ok(state())
+    sync_menu(&app)
 }
 
 /// Abre um terminal novo rodando `claude` com o perfil, na pasta `cwd` (ou home).
 fn open_claude_in(s: &Store, name: &str, cwd: Option<&Path>) -> Result<(), String> {
     s.dir_of(name)?; // valida
+    s.ensure_shared_links(name); // perfis antigos ganham links novos (ex.: sessions)
     let folder = cwd.map(Path::to_path_buf).or_else(dirs::home_dir).unwrap_or_else(|| PathBuf::from("."));
     let title = match folder.file_name() {
         Some(f) => format!("Claude [{name}] - {}", f.to_string_lossy()),
@@ -123,7 +120,7 @@ fn open_claude_in(s: &Store, name: &str, cwd: Option<&Path>) -> Result<(), Strin
 
 #[tauri::command]
 fn open_claude(name: String) -> Result<(), String> {
-    open_claude_in(&Store::from_env(), &name, None)
+    do_open_claude(&name)
 }
 
 #[tauri::command]
@@ -170,29 +167,47 @@ pub fn handle_cli() -> bool {
 }
 
 #[cfg(windows)]
-fn show_error(msg: &str) {
+pub(crate) fn show_error(msg: &str) {
     use windows_sys::Win32::UI::WindowsAndMessaging::{MessageBoxW, MB_ICONERROR, MB_OK};
     let w = |s: &str| s.encode_utf16().chain(Some(0)).collect::<Vec<u16>>();
     let (m, t) = (w(msg), w("Claude Profile Manager"));
     unsafe { MessageBoxW(std::ptr::null_mut(), m.as_ptr(), t.as_ptr(), MB_OK | MB_ICONERROR) };
 }
 #[cfg(not(windows))]
-fn show_error(msg: &str) {
+pub(crate) fn show_error(msg: &str) {
     eprintln!("{msg}");
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    // Menu do Explorer sempre ligado: regrava a cada abertura com o caminho atual
+    // do executável (reinstalação/atualização nunca deixa o menu quebrado).
+    let _ = explorer::enable(&state().profiles);
+
     tauri::Builder::default()
+        // Precisa ser o primeiro plugin: uma segunda abertura só traz a janela existente.
+        .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
+            tray::show_window(app);
+        }))
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
+        .setup(|app| {
+            tray::create(app.handle())?;
+            Ok(())
+        })
+        // Fechar a janela só esconde: o app continua na bandeja ("Sair" encerra).
+        .on_window_event(|window, event| {
+            if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                api.prevent_close();
+                let _ = window.hide();
+            }
+        })
         .invoke_handler(tauri::generate_handler![
             get_state,
             set_default,
             create_profile,
             rename_profile,
             delete_profile,
-            set_explorer_menu,
             open_claude,
             open_folder
         ])

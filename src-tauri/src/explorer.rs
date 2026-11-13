@@ -31,12 +31,6 @@ mod imp {
             .map_err(|e| e.to_string())
     }
 
-    pub fn is_enabled() -> bool {
-        RegKey::predef(HKEY_CURRENT_USER)
-            .open_subkey(format!(r"{CLASSES}\{}\{VERB}", TARGETS[0].0))
-            .is_ok()
-    }
-
     fn icon() -> String {
         let claude = dirs::home_dir().map(|h| h.join(r".local\bin\claude.exe"));
         match claude {
@@ -104,9 +98,6 @@ mod imp {
 #[cfg(not(windows))]
 mod imp {
     use super::*;
-    pub fn is_enabled() -> bool {
-        false
-    }
     pub fn enable(_: &[ProfileInfo]) -> Result<(), String> {
         Err("Menu de contexto só é suportado no Windows.".into())
     }
@@ -115,7 +106,7 @@ mod imp {
     }
 }
 
-pub use imp::{disable, enable, is_enabled};
+pub use imp::{disable, enable};
 
 /// Corrige o caminho quando o Explorer passa a raiz de um drive: `"C:\"` chega
 /// como `C:"` porque `\"` é lido como aspas escapadas.

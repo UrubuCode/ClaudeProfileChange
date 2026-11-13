@@ -14,7 +14,9 @@ use std::path::{Path, PathBuf};
 pub const DEFAULT_NAME: &str = "padrão";
 
 /// Itens do `~/.claude` principal compartilhados com todos os perfis via junction.
-const SHARED_DIRS: &[&str] = &["skills", "plugins", "agents", "commands"];
+/// `sessions` é o registro de sessões abertas (pid + token do socket de
+/// mensagens): compartilhado, Claudes de perfis diferentes se enxergam.
+const SHARED_DIRS: &[&str] = &["skills", "plugins", "agents", "commands", "sessions"];
 /// Arquivos copiados uma vez na criação (junction só funciona com pastas).
 const COPIED_FILES: &[&str] = &["settings.json", "CLAUDE.md"];
 
@@ -87,8 +89,6 @@ pub struct State {
     /// A variável aponta para uma pasta que não é nenhum perfil conhecido.
     pub env_unknown: bool,
     pub profiles: Vec<ProfileInfo>,
-    /// Menu "Abrir Claude aqui" instalado no Explorer (preenchido pelo app).
-    pub explorer_menu: bool,
 }
 
 pub struct Store {
@@ -255,7 +255,6 @@ impl Store {
             env_value: env,
             env_unknown,
             profiles,
-            explorer_menu: false,
         }
     }
 
@@ -269,15 +268,7 @@ impl Store {
         }
         fs::create_dir_all(&dir).map_err(|e| format!("Não foi possível criar {}: {e}", dir.display()))?;
         let main = self.default_dir();
-        let mut warnings = vec![];
-        for d in SHARED_DIRS {
-            let src = main.join(d);
-            if src.is_dir() {
-                if let Err(e) = make_dir_link(&src, &dir.join(d)) {
-                    warnings.push(format!("não foi possível ligar '{d}': {e}"));
-                }
-            }
-        }
+        let mut warnings = self.ensure_shared_links(&n);
         for f in COPIED_FILES {
             let src = main.join(f);
             if src.is_file() {
@@ -287,6 +278,34 @@ impl Store {
             }
         }
         Ok((n, warnings))
+    }
+
+    /// Cria os links compartilhados que faltarem (perfis antigos ganham os novos).
+    /// Uma pasta real já existente no perfil não é tocada. Retorna avisos.
+    pub fn ensure_shared_links(&self, name: &str) -> Vec<String> {
+        if name == DEFAULT_NAME {
+            return vec![];
+        }
+        let dir = self.root.join(name);
+        let main = self.default_dir();
+        let mut warnings = vec![];
+        for d in SHARED_DIRS {
+            let src = main.join(d);
+            let dst = dir.join(d);
+            if fs::symlink_metadata(&dst).is_ok() {
+                continue;
+            }
+            if !src.is_dir() {
+                if let Err(e) = fs::create_dir_all(&src) {
+                    warnings.push(format!("não foi possível criar '{d}': {e}"));
+                    continue;
+                }
+            }
+            if let Err(e) = make_dir_link(&src, &dst) {
+                warnings.push(format!("não foi possível ligar '{d}': {e}"));
+            }
+        }
+        warnings
     }
 
     pub fn rename(&self, old: &str, new: &str) -> Result<String, String> {

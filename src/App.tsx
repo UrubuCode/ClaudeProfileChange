@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { listen } from "@tauri-apps/api/event";
 import { api, formatDate, formatLeft, sessionStatus, type ProfileInfo, type State } from "./api";
 import { Dialog, type DialogRequest } from "./Dialog";
 import { Updater } from "./Updater";
@@ -42,7 +43,12 @@ export default function App() {
     load();
     const onFocus = () => load();
     window.addEventListener("focus", onFocus);
-    return () => window.removeEventListener("focus", onFocus);
+    // Trocas feitas pela bandeja do Windows
+    const unlisten = listen("state-changed", () => load());
+    return () => {
+      window.removeEventListener("focus", onFocus);
+      unlisten.then((f) => f());
+    };
   }, [load]);
 
   useEffect(() => {
@@ -98,14 +104,6 @@ export default function App() {
     if (s) setState(s);
   };
 
-  const toggleExplorer = async () => {
-    const on = !state?.explorerMenu;
-    const s = await run(() => api.setExplorerMenu(on), on
-      ? 'Menu instalado: clique direito numa pasta → "Mostrar mais opções" → "Abrir Claude aqui"'
-      : "Menu removido do Explorer");
-    if (s) setState(s);
-  };
-
   const isDefault = (name: string) => state?.profiles.find((p) => p.name === name)?.isDefaultProfile ?? false;
 
   // ---- atalhos ----
@@ -150,7 +148,6 @@ export default function App() {
       <nav className="menubar" onClick={(e) => e.stopPropagation()}>
         <MenuButton id="arquivo" label="Arquivo" open={menu} setOpen={setMenu}>
           <Item label="Nova conta…" hint="Ctrl+N" onClick={create} />
-          <Item label={(state?.explorerMenu ? "✓ " : "") + "Menu \"Abrir Claude aqui\" no Explorer"} onClick={toggleExplorer} />
           <Item label="Atualizar" hint="F5" onClick={() => load("Atualizado")} />
         </MenuButton>
         <MenuButton id="perfil" label="Perfil" open={menu} setOpen={setMenu}>
@@ -200,10 +197,7 @@ export default function App() {
 
       <footer className={"statusbar" + (status.error ? " error" : "")}>
         <span className="status-text" title={status.text}>{status.text}</span>
-        <label className="toggle" title="Clique direito numa pasta → Abrir Claude aqui → perfil">
-          <input type="checkbox" checked={!!state?.explorerMenu} onChange={toggleExplorer} />
-          Menu no Explorer
-        </label>
+        <span className="path" title={state?.profilesRoot}>{state?.profilesRoot}</span>
       </footer>
 
       {ctx && (() => {
