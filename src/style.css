@@ -85,6 +85,8 @@ code { font: 12px ui-monospace, Consolas, monospace; }
 .tone.idle { color: var(--muted); }
 .sub { color: var(--muted); }
 .banner { padding: 6px 12px; background: var(--accent-soft); border-bottom: 1px solid var(--border); font-size: 12px; }
+.banner.update { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.banner .bad { color: var(--bad); }
 .detail-footer { display: flex; gap: 6px; margin-top: 14px; }
 .hint { color: var(--muted); font-size: 12px; margin-top: 18px; max-width: 60ch; }
 .toggle { display: flex; align-items: center; gap: 6px; white-space: nowrap; cursor: pointer; }

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { api, formatDate, formatLeft, sessionStatus, type ProfileInfo, type State } from "./api";
 import { Dialog, type DialogRequest } from "./Dialog";
+import { Updater } from "./Updater";
 
 type Menu = "arquivo" | "perfil" | null;
 interface Ctx { x: number; y: number; name: string }
@@ -164,6 +165,8 @@ export default function App() {
           <span>Padrão: <b>{current ? label(current) : "pasta externa"}</b></span>
         </div>
       </nav>
+
+      <Updater />
 
       {state?.envUnknown && (
         <div className="banner">
