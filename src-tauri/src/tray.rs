@@ -4,6 +4,7 @@ use crate::profiles::{ProfileInfo, State, DEFAULT_NAME};
 use tauri::menu::{CheckMenuItem, Menu, MenuItem, PredefinedMenuItem, Submenu};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
 use tauri::{AppHandle, Emitter, Manager, Wry};
+use tauri_plugin_notification::NotificationExt;
 
 const TRAY_ID: &str = "main";
 const DEFAULT_PREFIX: &str = "default:";
@@ -49,6 +50,7 @@ fn build_menu(app: &AppHandle, s: &State) -> tauri::Result<Menu<Wry>> {
             &opens,
             &PredefinedMenuItem::separator(app)?,
             &MenuItem::with_id(app, "show", "Abrir janela", true, None::<&str>)?,
+            &MenuItem::with_id(app, "update", "Procurar atualizações", true, None::<&str>)?,
             &MenuItem::with_id(app, "quit", "Sair", true, None::<&str>)?,
         ],
     )
@@ -75,6 +77,17 @@ pub fn create(app: &AppHandle) -> tauri::Result<()> {
                 crate::do_set_default(app, name).map(|_| ())
             } else if let Some(name) = id.strip_prefix(OPEN_PREFIX) {
                 crate::do_open_claude(name)
+            } else if id == "update" {
+                let app = app.clone();
+                tauri::async_runtime::spawn(async move {
+                    let body = match crate::updates::check(&app, true).await {
+                        Ok(None) => format!("Você já está na versão mais recente ({}).", app.package_info().version),
+                        Ok(Some(v)) => format!("Atualizando para a versão {v}…"),
+                        Err(e) => format!("Não foi possível verificar atualizações: {e}"),
+                    };
+                    let _ = app.notification().builder().title("Claude Profile Manager").body(body).show();
+                });
+                Ok(())
             } else if id == "show" {
                 show_window(app);
                 Ok(())

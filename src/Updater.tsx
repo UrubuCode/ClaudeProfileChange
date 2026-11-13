@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { check, type Update } from "@tauri-apps/plugin-updater";
 import { relaunch } from "@tauri-apps/plugin-process";
+import { listen } from "@tauri-apps/api/event";
 
 type Phase =
   | { kind: "idle" }
@@ -14,9 +15,16 @@ export function Updater() {
 
   useEffect(() => {
     // Em `tauri dev` não há release correspondente; ignore falhas silenciosamente.
-    check()
-      .then((u) => u && setPhase({ kind: "available", update: u }))
-      .catch(() => {});
+    const lookup = () =>
+      check()
+        .then((u) => u && setPhase((p) => (p.kind === "idle" ? { kind: "available", update: u } : p)))
+        .catch(() => {});
+    lookup();
+    // A verificação periódica roda no Rust; com a janela visível ela avisa aqui.
+    const unlisten = listen("update-available", lookup);
+    return () => {
+      unlisten.then((f) => f());
+    };
   }, []);
 
   if (phase.kind === "idle") return null;

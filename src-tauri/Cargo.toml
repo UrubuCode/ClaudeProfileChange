@@ -1,6 +1,6 @@
 [package]
 name = "claude-profile-manager"
-version = "3.2.0"
+version = "3.2.1"
 description = "Gerenciador de perfis do Claude CLI"
 edition = "2021"
 
@@ -19,6 +19,7 @@ dirs = "6"
 tauri-plugin-updater = "2"
 tauri-plugin-process = "2"
 tauri-plugin-single-instance = "2"
+tauri-plugin-notification = "2"
 
 [target.'cfg(windows)'.dependencies]
 winreg = "0.55"

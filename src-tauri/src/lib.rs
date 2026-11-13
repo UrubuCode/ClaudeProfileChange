@@ -2,6 +2,7 @@ mod env;
 mod explorer;
 mod profiles;
 mod tray;
+mod updates;
 
 use profiles::{State, Store};
 use std::path::{Path, PathBuf};
@@ -191,8 +192,10 @@ pub fn run() {
         }))
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
+        .plugin(tauri_plugin_notification::init())
         .setup(|app| {
             tray::create(app.handle())?;
+            updates::start(app.handle());
             Ok(())
         })
         // Fechar a janela só esconde: o app continua na bandeja ("Sair" encerra).
