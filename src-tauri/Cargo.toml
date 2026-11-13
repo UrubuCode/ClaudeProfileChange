@@ -1,0 +1,33 @@
+[package]
+name = "claude-profile-manager"
+version = "3.0.1"
+description = "Gerenciador de perfis do Claude CLI"
+edition = "2021"
+
+[lib]
+name = "claude_profile_manager_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+dirs = "6"
+
+[target.'cfg(windows)'.dependencies]
+winreg = "0.55"
+junction = "1"
+windows-sys = { version = "0.59", features = ["Win32_Foundation", "Win32_UI_WindowsAndMessaging"] }
+
+[dev-dependencies]
+tempfile = "3"
+
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = "s"
+strip = true
+panic = "abort"
