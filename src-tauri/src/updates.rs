@@ -17,7 +17,7 @@ const FIRST_DELAY: Duration = Duration::from_secs(30);
 
 /// Arquivo que marca "acabei de instalar a versão X" para notificar após reiniciar.
 fn marker() -> Option<PathBuf> {
-    dirs::data_local_dir().map(|d| d.join("ClaudeProfileManager").join("updated-to"))
+    dirs::data_local_dir().map(|d| d.join("AISessionManager").join("updated-to"))
 }
 
 fn window_visible(app: &AppHandle) -> bool {
@@ -30,7 +30,7 @@ fn notify(app: &AppHandle, body: &str) {
     let _ = app
         .notification()
         .builder()
-        .title("Claude Profile Manager")
+        .title("AI Session Manager")
         .body(body)
         .show();
 }

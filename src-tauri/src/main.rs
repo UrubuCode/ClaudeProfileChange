@@ -3,8 +3,8 @@
 
 fn main() {
     // Chamado pelo menu do Explorer: abre o terminal e sai sem mostrar a janela.
-    if claude_profile_manager_lib::handle_cli() {
+    if ai_session_manager_lib::handle_cli() {
         return;
     }
-    claude_profile_manager_lib::run()
+    ai_session_manager_lib::run()
 }

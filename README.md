@@ -1,31 +1,34 @@
-# Claude Profile Manager
+# AI Session Manager
 
-Gerencia várias contas do [Claude Code](https://claude.com/claude-code) no Windows.
-Feito em Rust + Tauri 2 com frontend em React. O instalador tem cerca de 1 MB.
+Gerencia várias contas de ferramentas de IA no Windows: **Claude Code**, **Codex** e
+**Antigravity** (`agy`). Feito em Rust + Tauri 2 com frontend em React; o instalador tem cerca de 2 MB.
+
+> Antes se chamava **Claude Profile Manager**. Quem tem a versão antiga instalada
+> recebe esta pelo auto-update; o instalador remove a versão antiga sozinho.
 
 ## Como funciona
 
-Cada conta fica numa pasta própria em `~/.claude-profiles/<nome>/`, e o Claude é
-apontado para ela pela variável `CLAUDE_CONFIG_DIR`. A pasta `~/.claude` original
-é o perfil **padrão**.
+Cada conta fica numa pasta própria e a ferramenta é apontada para ela. Nada é
+copiado entre contas: cada ferramenta renova o próprio login dentro da pasta da
+conta, então trocar de perfil nunca derruba a sessão.
 
-Nada é copiado entre contas: o Claude renova o token dentro da pasta de cada conta,
-então trocar de perfil nunca desconecta a sessão.
+| Ferramenta | Pasta dos perfis | Como o perfil é aplicado |
+|---|---|---|
+| Claude Code | `~/.claude-profiles/<nome>` | `CLAUDE_CONFIG_DIR` |
+| Codex | `~/.codex-profiles/<nome>` | `CODEX_HOME` |
+| Antigravity | `~/.agy-profiles/<nome>` | home própria (`USERPROFILE`) + login em arquivo |
 
-- **Usar como padrão**: grava `CLAUDE_CONFIG_DIR` nas variáveis do usuário. Vale
-  para terminais e apps abertos depois da troca.
-- **Abrir Claude**: abre um terminal com o perfil só naquela janela, o que permite
-  usar várias contas ao mesmo tempo.
-- **Menu no Explorer**: com o botão direito numa pasta, "Abrir Claude aqui ▸ perfil"
-  (no Windows 11, fica em "Mostrar mais opções").
-- `skills`, `plugins`, `agents` e `commands` são compartilhados com o `~/.claude`
-  por junction. `settings.json` e `CLAUDE.md` são copiados quando o perfil é criado.
+O perfil **padrão** de cada ferramenta é a instalação original (`~/.claude`, `~/.codex`, login normal do `agy`).
 
-### Nova conta
-
-1. Clique em **+ Nova** e dê um nome. Um terminal do Claude abre já no perfil novo.
-2. Digite `/login` e entre com a outra conta. Use uma janela anônima se o navegador
-   já estiver logado em outra conta.
+- **Usar como padrão** (Claude e Codex): grava a variável nas variáveis do usuário;
+  vale para terminais e editores abertos depois.
+- **Abrir**: abre um terminal (Windows Terminal, se houver) com o perfil só naquela
+  janela — dá para usar várias contas ao mesmo tempo.
+- **Botão direito numa pasta → "Mostrar mais opções" → "Abrir IA aqui"**.
+- **Bandeja**: fechar a janela mantém o app na bandeja, com atalhos por ferramenta.
+- **Auto-update** em segundo plano.
+- Skills, plugins, agentes e regras de cada ferramenta são compartilhados com a
+  instalação original por junction.
 
 ## Desenvolvimento
 
@@ -48,15 +51,17 @@ Linha de comando do executável:
 
 | Comando | Efeito |
 |---|---|
-| `claude-profile-manager --menu on\|off` | instala ou remove o menu do Explorer |
-| `claude-profile-manager --open <perfil> <pasta>` | abre o Claude na pasta com o perfil |
+| `ai-session-manager --menu on\|off` | instala ou remove o menu do Explorer |
+| `ai-session-manager --open <claude\|codex\|agy> <perfil> <pasta>` | abre a ferramenta na pasta com o perfil |
 
 ## Estrutura
 
 ```
 src/                  frontend React (App.tsx, api.ts)
 src-tauri/src/
-  profiles.rs         perfis = pastas com CLAUDE_CONFIG_DIR
+  tools.rs            ferramentas suportadas e como cada uma isola um perfil
+  profiles.rs         perfis por ferramenta (criar, listar, excluir, conta)
+  terminal.rs         abre o terminal com o perfil aplicado
   env.rs              leitura e gravação da variável no HKCU\Environment
   explorer.rs         menu de contexto do Explorer
   lib.rs              comandos Tauri e modo linha de comando

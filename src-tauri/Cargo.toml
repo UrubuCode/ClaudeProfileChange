@@ -1,11 +1,11 @@
 [package]
-name = "claude-profile-manager"
-version = "3.2.1"
-description = "Gerenciador de perfis do Claude CLI"
+name = "ai-session-manager"
+version = "3.3.0"
+description = "Gerenciador de perfis de ferramentas de IA (Claude Code, Codex, Antigravity)"
 edition = "2021"
 
 [lib]
-name = "claude_profile_manager_lib"
+name = "ai_session_manager_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]
@@ -20,11 +20,12 @@ tauri-plugin-updater = "2"
 tauri-plugin-process = "2"
 tauri-plugin-single-instance = "2"
 tauri-plugin-notification = "2"
+base64 = "0.22"
 
 [target.'cfg(windows)'.dependencies]
 winreg = "0.55"
 junction = "1"
-windows-sys = { version = "0.59", features = ["Win32_Foundation", "Win32_UI_WindowsAndMessaging"] }
+windows-sys = { version = "0.59", features = ["Win32_Foundation", "Win32_UI_WindowsAndMessaging", "Win32_Security_Credentials"] }
 
 [dev-dependencies]
 tempfile = "3"

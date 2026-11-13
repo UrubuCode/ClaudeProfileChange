@@ -1,10 +1,7 @@
-//! Leitura/gravação de `CLAUDE_CONFIG_DIR` no ambiente do usuário (HKCU\Environment).
-
-pub const VAR: &str = "CLAUDE_CONFIG_DIR";
+//! Leitura/gravação de variáveis no ambiente do usuário (HKCU\Environment).
 
 #[cfg(windows)]
 mod imp {
-    use super::VAR;
     use winreg::enums::{HKEY_CURRENT_USER, KEY_READ, KEY_SET_VALUE};
     use winreg::RegKey;
 
@@ -15,15 +12,15 @@ mod imp {
             .map_err(|e| format!("Não foi possível abrir HKCU\\Environment: {e}"))
     }
 
-    pub fn get() -> Option<String> {
-        key(false).ok()?.get_value::<String, _>(VAR).ok()
+    pub fn get(var: &str) -> Option<String> {
+        key(false).ok()?.get_value::<String, _>(var).ok()
     }
 
-    pub fn set(value: Option<&str>) -> Result<(), String> {
+    pub fn set(var: &str, value: Option<&str>) -> Result<(), String> {
         let k = key(true)?;
         match value {
-            Some(v) => k.set_value(VAR, &v).map_err(|e| e.to_string())?,
-            None => match k.delete_value(VAR) {
+            Some(v) => k.set_value(var, &v).map_err(|e| e.to_string())?,
+            None => match k.delete_value(var) {
                 Ok(()) => {}
                 Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
                 Err(e) => return Err(e.to_string()),
@@ -56,10 +53,10 @@ mod imp {
 
 #[cfg(not(windows))]
 mod imp {
-    pub fn get() -> Option<String> {
-        std::env::var(super::VAR).ok()
+    pub fn get(var: &str) -> Option<String> {
+        std::env::var(var).ok()
     }
-    pub fn set(_value: Option<&str>) -> Result<(), String> {
+    pub fn set(_var: &str, _value: Option<&str>) -> Result<(), String> {
         Err("Definir o perfil padrão só é suportado no Windows por enquanto.".into())
     }
 }

@@ -53,10 +53,10 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ""
         with:
           tagName: ${{ github.ref_name }}
-          releaseName: Claude Profile Manager ${{ github.ref_name }}
+          releaseName: AI Session Manager ${{ github.ref_name }}
           releaseBody: |
             Instale com o `*-setup.exe` (NSIS) ou o `.msi`.
-            Para ativar o menu "Abrir Claude aqui" no Explorer, marque "Menu no Explorer" no app.
+            Perfis de Claude Code, Codex e Antigravity; botão direito numa pasta → "Mostrar mais opções" → "Abrir IA aqui".
           # Auto-update usa o instalador NSIS (roda os hooks do menu do Explorer)
           updaterJsonPreferNsis: true
           releaseDraft: false
